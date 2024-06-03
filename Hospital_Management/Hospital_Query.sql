@@ -1,10 +1,11 @@
 #SQL QUERIES
 
-#1. Write a query in SQL to obtain the name of the physician in alphabetical order. 
+#1. Retrieve the names and positions of nurses who are registered. 
 
-SELECT NAME AS PHYSICIAN_NAME
-FROM PHYSICIAN
-ORDER BY NAME;
+SELECT name, position 
+FROM Nurse 
+WHERE registered = 'Yes';
+
 
 #2. Write a query in SQL to obtain the fullname of the patients whose gender is male.
 
@@ -12,10 +13,12 @@ SELECT CONCAT(NAME,' ',SURNAME) AS Patients_Fullname,GENDER
 FROM PATIENT
 WHERE GENDER = 'MALE';
 
-#3. Write a query in SQL to find the name of the nurse who are the head of their department and are registered.
+#3. Retrieve the names and genders of patients born after 1990.
 
-SELECT * FROM NURSE
-WHERE POSITION ='Head Nurse' AND REGISTERED = "YES";
+SELECT name, Gender 
+FROM Patient 
+WHERE YEAR(birthdate) > 1990;
+
 
 #4. Write a query in SQL to find the name of the nurse who are Team Leader or not registered.
 
@@ -42,12 +45,13 @@ WHERE PATIENT_ID = 5;
 
 SELECT * FROM PATIENT;
 
-#8. Write a query to drop phone column from patient table.
+#8. Retrieve the names of patients who have hypertension.
 
-ALTER TABLE Patient
-DROP phone;
+SELECT p.name
+FROM Patient p
+INNER JOIN Patient_Diagnosis pd ON p.patient_id = pd.Patient_ID
+WHERE pd.Diagnosis = 'Hypertension';
 
-SELECT * FROM PATIENT;
 
 #9. Second maximum cost of medical procedure
 
@@ -65,25 +69,29 @@ SELECT CONCAT(NAME,' ',SURNAME) AS FULL_NAME,GENDER
 FROM PATIENT
 WHERE CONCAT(NAME,' ',SURNAME) LIKE 'A%';
 
-#11. Write a query in SQL to obtain the name of the patients whose third letter is M.
+#11. Find patients who have been diagnosed with the same disease more than once.
 
-SELECT CONCAT(NAME,' ',SURNAME) AS FULL_NAME,GENDER
-FROM PATIENT
-WHERE CONCAT(NAME,' ',SURNAME) LIKE '__M%';
+SELECT DISTINCT p.patient_id, p.name, p.surname, pd.Diagnosis
+FROM patient p
+INNER JOIN patient_diagnosis pd ON p.patient_id = pd.Patient_ID
+GROUP BY p.patient_id, pd.Diagnosis
+HAVING COUNT(pd.Diagnosis) > 1;
+
 
 #12. Write a query in SQL to obtain the name of the patients whose name start with letter J and ends with Z.
 
-SELECT CONCAT(NAME,' ',SURNAME) AS FULL_NAME,GENDER
-FROM PATIENT
-WHERE CONCAT(NAME,' ',SURNAME) LIKE 'J%Z';
 
-#13. Write a query to obtain patient details having patient_id 11 to 20.
+#13. Find the department where the average age of patients is the highest.
 
-SELECT * 
-FROM PATIENT
-LIMIT 10,10;
+SELECT d.dept_name, AVG(YEAR(CURRENT_DATE) - YEAR(p.birthdate)) AS avg_age
+FROM department d
+LEFT JOIN physician phy ON d.department_id = phy.departmentid
+LEFT JOIN patient p ON phy.employeeid = p.primary_check
+GROUP BY d.dept_name
+ORDER BY avg_age DESC
+LIMIT 1;
 
-#JOINS
+
 
 #14.  Write a query in SQL to obtain the name of the physicians who are the head of each department
 
@@ -92,12 +100,14 @@ from physician p
 inner join department d
 on p.employeeid = d.head;
 
+
 #15. Write a query in SQL to obtain the name of the patients with their physicians by whom they got their preliminary treatement
 
 select CONCAT(p.name,' ',p.SURNAME) as PATIENT_NAME,ph.NAME as PHY_WHO_DID_PRI_TREATMENT
 FROM PATIENT p
 LEFT JOIN PHYSICIAN ph
 ON p.PRIMARY_CHECK = ph.EMPLOYEEID;
+
 
 #16. Write a query in SQL to obtain the name of the physician with the department who are done with affiliation.
 
@@ -109,14 +119,17 @@ inner join department d
 on aw.departmentid = d.department_id
 where primaryaffiliation='t';
 
-#17. Write a query to obtain physician name,position and department they are affiliated with.
 
-SELECT p.name AS physician_name, p.position AS physician_position, d.dept_name AS department_name
-FROM Physician p
-JOIN affiliated_with a 
-ON p.employeeid = a.physicianid
-JOIN department d
-ON a.departmentid = d.department_id;
+#17. Find the nurse with the most patients assigned.
+
+SELECT n.name, COUNT(p.patient_id) AS total_assigned_patients
+FROM nurse n
+LEFT JOIN physician phy ON n.nurse_id = phy.nurse_id
+LEFT JOIN patient p ON phy.employeeid = p.primary_check
+GROUP BY n.name
+ORDER BY total_assigned_patients DESC
+LIMIT 1;
+
 
 #18. Write a query in SQL to obtain the patient name from which physician they get primary_checkup and also mention the patient diagnosis with prescription.
 
@@ -160,6 +173,7 @@ WHERE position IN (SELECT position FROM Physician
                    LIKE '%Senior%' OR position LIKE '%Head Chief%'
                    );
 
+
 #24.  Write a query in SQL to obtain the employeeid, physician name and position whose primary affiliation has not been done. 
 
 SELECT * 
@@ -168,3 +182,34 @@ WHERE employeeid IN (SELECT physicianid
                      FROM affiliated_with 
                      WHERE primaryaffiliation = 'f'
                      );
+
+#25. Find the total number of patients per department.
+
+  
+SELECT d.dept_name, COUNT(p.patient_id) AS total_patients
+FROM department d
+LEFT JOIN physician phy ON d.department_id = phy.departmentid
+LEFT JOIN patient p ON phy.employeeid = p.primary_check
+GROUP BY d.dept_name;
+
+
+#26. Find the top 5 physicians with the highest number of patients.
+
+SELECT phy.name, COUNT(pd.Patient_ID) AS total_patients
+FROM physician phy
+LEFT JOIN patient_diagnosis pd ON phy.employeeid = pd.Physician_id
+GROUP BY phy.name
+ORDER BY total_patients DESC
+LIMIT 5;
+
+
+#27. Find the average cost of procedures performed by each department.
+
+SELECT d.dept_name, AVG(pr.cost) AS average_cost
+FROM department d
+LEFT JOIN physician phy ON d.department_id = phy.departmentid
+LEFT JOIN patient_diagnosis pd ON phy.employeeid = pd.Physician_id
+LEFT JOIN procedures pr ON pd.Diagnosis = pr.name
+GROUP BY d.dept_name;
+
+
